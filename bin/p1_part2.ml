@@ -24,3 +24,4 @@ let () =
   ) sorterd_a in
 
   print_int (List.fold_left (fun acc dis -> acc + dis) 0 distances)
+
