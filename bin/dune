@@ -8,5 +8,3 @@
 (executable
  (public_name p1_part2)
  (name p1_part2))
-
-

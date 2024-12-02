@@ -1,4 +1,5 @@
-let file = "p1.txt"
+let file = "p1.txt";
+module IntMap = Map.Make(Int)
 
 let () =
   let lines = 
@@ -16,12 +17,20 @@ let () =
     List.map (fun pair -> List.nth pair i) split
     |> List.sort Int.compare in 
 
-  let sorterd_a = sorted_column 0 in
-  let sorterd_b = sorted_column 1 in
+  let col_a = sorted_column 0 in
+  let col_b = sorted_column 1 in
 
-  let distances = List.mapi (
-    fun i id -> (List.nth sorterd_b i) - id |> abs 
-  ) sorterd_a in
+  let freq_b = List.fold_left (fun acc id -> 
+    IntMap.update id ( function 
+      | Some count -> Some (count + 1)
+      | None -> Some 1
+    ) acc 
+  ) IntMap.empty col_b in
 
-  print_int (List.fold_left (fun acc dis -> acc + dis) 0 distances)
+  let total = List.fold_left (fun acc id ->
+    match IntMap.find_opt id freq_b with
+      | Some count -> acc + (id * count)
+      | None -> acc
+  ) 0 col_a in
 
+  print_int total
