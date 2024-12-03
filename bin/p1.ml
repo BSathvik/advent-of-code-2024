@@ -1,4 +1,4 @@
-let file = "p1.txt"
+let file = "data/p1.txt"
 
 module IntMap = Map.Make (Int)
 

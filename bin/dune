@@ -2,8 +2,5 @@
  (public_name p1)
  (name p1))
 (executable
- (public_name p1_part2)
- (name p1_part2))
-(executable
  (public_name p2)
  (name p2))
