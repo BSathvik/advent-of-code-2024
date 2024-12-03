@@ -26,6 +26,5 @@ let () =
       (open_in file |> In_channel.input_lines)
   in
 
-  print_int (part1 reports);
-  print_newline ();
-  print_int (part2 reports)
+  Format.printf "Part 1: %d\n" (part1 reports);
+  Format.printf "Part 2: %d" (part2 reports)
