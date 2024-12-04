@@ -4,3 +4,7 @@
 (executable
  (public_name p2)
  (name p2))
+(executable
+ (public_name p3)
+ (libraries str)
+ (name p3))
