@@ -8,3 +8,8 @@
  (public_name p3)
  (libraries str)
  (name p3))
+(executable
+ (public_name p4)
+ (libraries str)
+ (name p4))
+
