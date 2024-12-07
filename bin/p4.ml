@@ -35,8 +35,7 @@ let part2 lines =
     (fun (i, j) ->
       match
         [ (0, 0); (1, 1); (2, 2); (0, 2); (1, 1); (2, 0) ]
-        |> List.map (fun (r, c) -> (i + r, j + c))
-        |> List.map (fun (i, j) -> List.nth (List.nth lines i) j)
+        |> List.map (fun (r, c) -> List.nth (List.nth lines (r + i)) (c + j))
         |> List.to_seq |> String.of_seq
       with
       | "MASMAS" | "SAMSAM" | "SAMMAS" | "MASSAM" -> 1
