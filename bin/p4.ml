@@ -1,71 +1,55 @@
 let file = "data/p4.txt"
 
-open List
+open Seq
 
 let part1 lines =
-  let char (i, j) = nth (nth lines i) j in
-  let row, col = (length lines, length (nth lines 0)) in
-
-  let horizontal = Seq.init row (fun i -> Seq.init col (fun j -> (i, j))) in
-  let vertical = Seq.init col (fun j -> Seq.init row (fun i -> (i, j))) in
-
-  let down =
-    Seq.append
-      (Seq.init row (fun i ->
-           Seq.init (min (row - i) col) (fun k -> (i + k, k))))
-      (Seq.init (col - 1) (fun j ->
-           Seq.init (min row (col - j - 1)) (fun k -> (k, j + k + 1))))
-  in
-
-  let up =
-    Seq.append
-      (Seq.init row (fun i -> Seq.init (min (i + 1) col) (fun k -> (i - k, k))))
-      (Seq.init (col - 1) (fun j ->
-           Seq.init (min row (col - j - 1)) (fun k -> (row - k - 1, j + k + 1))))
-  in
+  let row, col = (List.length lines, List.length (List.nth lines 0)) in
 
   let rec count seq =
-    match String.of_seq (Seq.map char (Seq.take 4 seq)) with
+    match
+      take 4 seq
+      |> map (fun (i, j) -> List.nth (List.nth lines i) j)
+      |> String.of_seq
+    with
     | "" -> 0
-    | "XMAS" | "SAMX" -> 1 + count (Seq.drop 1 seq)
-    | _ -> count (Seq.drop 1 seq)
+    | "XMAS" | "SAMX" -> 1 + (drop 1 seq |> count)
+    | _ -> drop 1 seq |> count
   in
 
-  print_int
-    (Seq.fold_left
-       (fun acc seq -> acc + count seq)
-       0
-       ([ horizontal; vertical; down; up ] |> to_seq |> Seq.concat))
+  [
+    init row (fun i -> init col (fun j -> (i, j)));
+    init col (fun j -> init row (fun i -> (i, j)));
+    init row (fun i -> init (min (row - i) col) (fun k -> (i + k, k)));
+    init (col - 1) (fun j ->
+        init (min row (col - j - 1)) (fun k -> (k, j + k + 1)));
+    init row (fun i -> init (min (i + 1) col) (fun k -> (i - k, k)));
+    init (col - 1) (fun j ->
+        init (min row (col - j - 1)) (fun k -> (row - k - 1, j + k + 1)));
+  ]
+  |> List.to_seq |> concat |> map count |> fold_left ( + ) 0
 
 let part2 lines =
-  let char (i, j) = nth (nth lines i) j in
-  let row, col = (length lines, length (nth lines 0)) in
+  let row, col = (List.length lines, List.length (List.nth lines 0)) in
 
-  let count i j =
-    let xmas =
-      map
-        (fun (r, c) -> (i + r, j + c))
+  map
+    (fun (i, j) ->
+      match
         [ (0, 0); (1, 1); (2, 2); (0, 2); (1, 1); (2, 0) ]
-    in
-
-    match xmas |> map char |> to_seq |> String.of_seq with
-    | "" -> 0
-    | "MASMAS" | "SAMSAM" | "SAMMAS" | "MASSAM" -> 1
-    | _ -> 0
-  in
-
-  let horizontal =
-    Seq.concat
-      (Seq.init (row - 2) (fun i -> Seq.init (col - 2) (fun j -> (i, j))))
-  in
-  print_int (Seq.fold_left (fun acc (i, j) -> acc + count i j) 0 horizontal)
+        |> List.map (fun (r, c) -> (i + r, j + c))
+        |> List.map (fun (i, j) -> List.nth (List.nth lines i) j)
+        |> List.to_seq |> String.of_seq
+      with
+      | "MASMAS" | "SAMSAM" | "SAMMAS" | "MASSAM" -> 1
+      | _ -> 0)
+    (init (row - 2) (fun i -> init (col - 2) (fun j -> (i, j))) |> concat)
+  |> fold_left ( + ) 0
 
 let () =
   let lines =
     open_in file |> In_channel.input_lines
-    |> map (fun line -> String.to_seq line |> of_seq)
+    |> List.map (fun line -> String.to_seq line |> List.of_seq)
   in
 
-  part1 lines;
+  print_int (part1 lines);
   print_endline "----";
-  part2 lines
+  print_int (part2 lines)
