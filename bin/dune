@@ -12,4 +12,8 @@
  (public_name p4)
  (libraries str)
  (name p4))
+(executable
+ (public_name p5)
+ (libraries str)
+ (name p5))
 
