@@ -15,8 +15,9 @@ let node_num = function Node (n, _) -> n | Leaf n -> n
 
 let order_scores orders nums =
   let node_table = Hashtbl.create 123456 in
+  let orders = filter (fun (a, b) -> mem a nums && mem b nums) orders in
   let root_nums =
-    ref (map (fun (before, _) -> before) orders |> IntSet.of_list)
+    map (fun (before, _) -> before) orders |> IntSet.of_list |> ref
   in
 
   List.iter
@@ -41,14 +42,13 @@ let order_scores orders nums =
       (* `after` num cannot be a candidate for the root node *)
       root_nums := IntSet.remove after !root_nums;
 
-      (* print_int (IntSet.to_list !root_nums |> length); *)
       before_node :=
         match !before_node with
         | Node (_, children) ->
             if num_in_nodes before children then Node (before, children)
             else Node (before, after_node :: children)
         | Leaf _ -> Node (before, [ after_node ]))
-    (filter (fun (a, b) -> mem a nums && mem b nums) orders);
+    orders;
 
   let parents_table = Hashtbl.create 123455 in
 
@@ -60,10 +60,9 @@ let order_scores orders nums =
             ~default:IntSet.empty))
   in
 
-  Hashtbl.iter
-    (fun _ node ->
+  IntSet.iter
+    (fun root_num ->
       let visited = ref IntSet.empty in
-
       let rec score_node parents node =
         if not (IntSet.mem (node_num !node) !visited) then (
           match !node with
@@ -76,8 +75,10 @@ let order_scores orders nums =
               update_parents n parents)
         else ()
       in
-      score_node IntSet.empty node)
-    node_table;
+      score_node IntSet.empty (Hashtbl.find node_table root_num))
+    !root_nums;
+
+  (* Format.printf "%d\n" (IntSet.to_list !root_nums |> length); *)
   parents_table
 
 let part1 orders updates =
