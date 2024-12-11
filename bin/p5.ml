@@ -60,30 +60,41 @@ let order_scores orders nums =
             ~default:IntSet.empty))
   in
 
-  IntSet.iter
-    (fun root_num ->
-      let visited = ref IntSet.empty in
-      let rec score_node parents node =
-        if not (IntSet.mem (node_num !node) !visited) then (
-          match !node with
-          | Node (n, children) ->
-              visited := IntSet.add n !visited;
-              update_parents n parents;
-              iter (fun cn -> score_node (IntSet.add n parents) cn) children
-          | Leaf n ->
-              visited := IntSet.add n !visited;
-              update_parents n parents)
-        else ()
-      in
-      score_node IntSet.empty (Hashtbl.find node_table root_num))
-    !root_nums;
+  let valid_orders =
+    map
+      (fun root_num ->
+        let visited = ref IntSet.empty in
+        let rec score_node parents node =
+          if not (IntSet.mem (node_num !node) !visited) then (
+            match !node with
+            | Node (n, children) ->
+                visited := IntSet.add n !visited;
+                update_parents n parents;
+                node
+                :: fold_left
+                     (fun acc cn -> score_node (IntSet.add n parents) cn @ acc)
+                     [] children
+            | Leaf n ->
+                visited := IntSet.add n !visited;
+                update_parents n parents;
+                [ node ])
+          else []
+        in
+        let order =
+          score_node IntSet.empty (Hashtbl.find node_table root_num)
+        in
+        (* String.concat "," (map (fun n -> node_num !n |> string_of_int) order) *)
+        (* |> Format.printf "%s\n"; *)
+        order)
+      (IntSet.to_list !root_nums)
+  in
 
   (* Format.printf "%d\n" (IntSet.to_list !root_nums |> length); *)
-  parents_table
+  (parents_table, valid_orders)
 
 let part1 orders updates =
   let is_valid update =
-    let parents = order_scores orders update in
+    let parents, _ = order_scores orders update in
     let rec aux invalid = function
       | [] -> true
       | num :: t ->
@@ -98,6 +109,28 @@ let part1 orders updates =
   in
 
   updates |> filter is_valid
+  |> map (fun u -> nth u ((length u - 1) / 2))
+  |> fold_left ( + ) 0
+
+let part2 orders updates =
+  let order_of_invalid acc update =
+    let parents, valid_orders = order_scores orders update in
+    let rec aux invalid = function
+      | [] -> true
+      | num :: t ->
+          if IntSet.mem num invalid then false
+          else
+            let p =
+              Option.value (Hashtbl.find_opt parents num) ~default:IntSet.empty
+            in
+            aux (IntSet.union invalid p) t
+    in
+    let valid_order = map (fun n -> node_num !n) (hd valid_orders) in
+    acc @ if not (aux IntSet.empty update) then [ valid_order ] else []
+  in
+
+  updates
+  |> fold_left order_of_invalid []
   |> map (fun u -> nth u ((length u - 1) / 2))
   |> fold_left ( + ) 0
 
@@ -118,4 +151,5 @@ let () =
     |> map (fun line -> String.split_on_char ',' line |> map int_of_string)
   in
 
-  Format.printf "part1: %d\n" (part1 orders updates)
+  Format.printf "part1: %d\n" (part1 orders updates);
+  Format.printf "part2: %d\n" (part2 orders updates)
