@@ -4,8 +4,6 @@ module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)
 open List
 
-(* type order = (int, order) hashtbl.t | leaf of int *)
-
 type graph = Node of (int * graph ref t) | Leaf of int
 
 let num_in_nodes num nodes =
@@ -15,14 +13,11 @@ let num_in_nodes num nodes =
 
 let node_num = function Node (n, _) -> n | Leaf n -> n
 
-let order_scores orders =
+let order_scores orders nums =
   let node_table = Hashtbl.create 123456 in
   let root_nums =
     ref (map (fun (before, _) -> before) orders |> IntSet.of_list)
   in
-
-  Format.printf "init root_nums: %d\n" (IntSet.to_list !root_nums |> length);
-  Format.printf "init orders: %d\n" (length orders);
 
   List.iter
     (fun (before, after) ->
@@ -53,54 +48,55 @@ let order_scores orders =
             if num_in_nodes before children then Node (before, children)
             else Node (before, after_node :: children)
         | Leaf _ -> Node (before, [ after_node ]))
-    orders;
+    (filter (fun (a, b) -> mem a nums && mem b nums) orders);
 
-  let score_table = Hashtbl.create 123455 in
+  let parents_table = Hashtbl.create 123455 in
 
-  let update_score num score =
-    Hashtbl.replace score_table num
-      (max (Option.value (Hashtbl.find_opt score_table num) ~default:0) score)
+  let update_parents num parents =
+    Hashtbl.replace parents_table num
+      (IntSet.union parents
+         (Option.value
+            (Hashtbl.find_opt parents_table num)
+            ~default:IntSet.empty))
   in
 
   Hashtbl.iter
     (fun _ node ->
       let visited = ref IntSet.empty in
 
-      let rec score_node score node =
+      let rec score_node parents node =
         if not (IntSet.mem (node_num !node) !visited) then (
           match !node with
           | Node (n, children) ->
               visited := IntSet.add n !visited;
-              update_score n score;
-              iter (fun cn -> score_node (score + 1) cn) children
+              update_parents n parents;
+              iter (fun cn -> score_node (IntSet.add n parents) cn) children
           | Leaf n ->
               visited := IntSet.add n !visited;
-              update_score n score)
+              update_parents n parents)
         else ()
       in
-      score_node 0 node)
+      score_node IntSet.empty node)
     node_table;
-
-  Format.printf "final root_nums: %d\n" (IntSet.to_list !root_nums |> length);
-  Format.printf "final orders: %d\n" (length orders);
-  Hashtbl.iter (fun k v -> Format.printf "%d: %d\n" k v) score_table;
-  Format.printf "final orders: %d\n" (length orders);
-  score_table
+  parents_table
 
 let part1 orders updates =
-  (* iter (fun (i, j) -> Format.printf "%d|%d\n" i j) orders; *)
-  (* iter *)
-  (*   (fun l -> String.concat "," (map string_of_int l) |> print_endline) *)
-  (*   updates; *)
-  let scores = order_scores orders in
-
-  let rec increases = function
-    | [] | [ _ ] -> true
-    | a :: b :: t -> if a <= b then increases (b :: t) else false
+  let is_valid update =
+    let parents = order_scores orders update in
+    let rec aux invalid = function
+      | [] -> true
+      | num :: t ->
+          if IntSet.mem num invalid then false
+          else
+            let p =
+              Option.value (Hashtbl.find_opt parents num) ~default:IntSet.empty
+            in
+            aux (IntSet.union invalid p) t
+    in
+    aux IntSet.empty update
   in
 
-  updates
-  |> filter (fun u -> u |> map (fun n -> Hashtbl.find scores n) |> increases)
+  updates |> filter is_valid
   |> map (fun u -> nth u ((length u - 1) / 2))
   |> fold_left ( + ) 0
 
