@@ -105,13 +105,16 @@ let part2 lines =
     in
 
     let ni, nj = (si + vi, sj + vj) in
-    if ni >= 0 && nj >= 0 && ni < row && nj < col then
+    if
+      ni >= 0 && nj >= 0 && ni < row && nj < col
+      && not (IntTupleSet.mem (vi, vj) vec_set)
+    then
       match chr (ni, nj) with
       | '#' -> move (si, sj) (turn (vi, vj)) pos_vecs res
       | _ ->
           let res =
             if
-              start_pos <> (ni, nj)
+              (not (IntTupleMap.mem (ni, nj) pos_vecs))
               && has_cycle (si, sj) (ni, nj) (turn (vi, vj)) pos_vecs
             then IntTupleSet.add (ni, nj) res
             else res

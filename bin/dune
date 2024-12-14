@@ -20,4 +20,7 @@
  (public_name p6)
  (libraries str)
  (name p6))
-
+(executable
+ (public_name p7)
+ (libraries str)
+ (name p7))
