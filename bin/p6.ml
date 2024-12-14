@@ -5,7 +5,13 @@ module IntSet = Set.Make (Int)
 module IntTupleSet = Set.Make (struct
   type t = int * int
 
-  let compare (ai, aj) (bi, bj) = compare (ai - aj) (bj - bi)
+  let compare (ai, aj) (bi, bj) = compare (ai, aj) (bi, bj)
+end)
+
+module IntTupleMap = Map.Make (struct
+  type t = int * int
+
+  let compare (ai, aj) (bi, bj) = compare (ai, aj) (bi, bj)
 end)
 
 open List
@@ -63,45 +69,59 @@ let part2 lines =
   let row, col = (List.length lines, List.length (List.nth lines 0)) in
 
   let chr (i, j) = nth (nth lines i) j in
-
-  let pos_vecs = Hashtbl.create 123456 in
   let start_pos, start_vector = player lines in
 
-  let rec has_cycle (si, sj) (vi, vj) =
+  let rec has_cycle (si, sj) (oi, oj) (vi, vj) pos_vecs =
     let vec_set =
-      Hashtbl.find_opt pos_vecs (si, sj)
+      IntTupleMap.find_opt (si, sj) pos_vecs
       |> Option.value ~default:IntTupleSet.empty
+    in
+    let pos_vecs =
+      IntTupleMap.add (si, sj) (IntTupleSet.add (vi, vj) vec_set) pos_vecs
     in
 
     if IntTupleSet.mem (vi, vj) vec_set then true
     else
       let ni, nj = (si + vi, sj + vj) in
       if ni >= 0 && ni < row && nj >= 0 && nj < col then
-        (* Format.printf "%d, %d\n" ni nj; *)
         match chr (ni, nj) with
-        | '#' -> false
-        | _ -> has_cycle (ni, nj) (vi, vj)
+        | '#' -> has_cycle (si, sj) (oi, oj) (turn (vi, vj)) pos_vecs
+        | _ ->
+            if (ni, nj) = (oi, oj) then
+              has_cycle (si, sj) (oi, oj) (turn (vi, vj)) pos_vecs
+            else
+              (* Format.printf "%d, %d\n" si sj; *)
+              has_cycle (ni, nj) (oi, oj) (vi, vj) pos_vecs
       else false
   in
 
-  let rec move (si, sj) (vi, vj) =
-    let ni, nj = (si + vi, sj + vj) in
+  let rec move (si, sj) (vi, vj) pos_vecs res =
+    let vec_set =
+      IntTupleMap.find_opt (si, sj) pos_vecs
+      |> Option.value ~default:IntTupleSet.empty
+    in
+    let pos_vecs =
+      IntTupleMap.add (si, sj) (IntTupleSet.add (vi, vj) vec_set) pos_vecs
+    in
 
-    if ni < row && nj < col then (
+    let ni, nj = (si + vi, sj + vj) in
+    if ni >= 0 && nj >= 0 && ni < row && nj < col then
       match chr (ni, nj) with
-      | '#' -> move (si, sj) (turn (vi, vj))
+      | '#' -> move (si, sj) (turn (vi, vj)) pos_vecs res
       | _ ->
-          let vec_set =
-            Hashtbl.find_opt pos_vecs (si, sj)
-            |> Option.value ~default:IntTupleSet.empty
+          let res =
+            if
+              start_pos <> (ni, nj)
+              && has_cycle (si, sj) (ni, nj) (turn (vi, vj)) pos_vecs
+            then IntTupleSet.add (ni, nj) res
+            else res
           in
-          Hashtbl.replace pos_vecs (si, sj) (IntTupleSet.add (vi, vj) vec_set);
-          move (ni, nj) (vi, vj)
-          + if has_cycle (si, sj) (turn (vi, vj)) then 1 else 0)
-    else 0
+          move (ni, nj) (vi, vj) pos_vecs res
+    else res
   in
 
-  move start_pos start_vector
+  move start_pos start_vector IntTupleMap.empty IntTupleSet.empty
+  |> IntTupleSet.to_list |> length
 
 let () =
   let lines =
