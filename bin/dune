@@ -28,4 +28,8 @@
  (public_name p8)
  (libraries str)
  (name p8))
+(executable
+ (public_name p9)
+ (libraries str)
+ (name p9))
 
