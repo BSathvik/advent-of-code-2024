@@ -1,31 +1,29 @@
 let file = "data/p9.txt"
 
 open List
+open Fun
 
 let part1 disk =
   let len = length disk in
 
-  let file_blocks_len =
-    disk |> filteri (fun i _ -> i mod 2 = 0) |> fold_left ( + ) 0
-  in
+  let file_blocks = filteri (fun i _ -> i mod 2 = 0) disk in
+  let file_blocks_len = fold_left ( + ) 0 file_blocks in
 
   let rev_files =
-    Seq.unfold
-      (fun (i, id) ->
-        if i >= 0 then
-          Some (Seq.init (nth disk i) (fun _ -> id), (i - 2, id - 1))
-        else None)
-      (len - 1 - ((len - 1) mod 2), (len - (len mod 2)) / 2)
-    |> Seq.concat
+    fold_right
+      (fun (i, blk) acc -> Seq.append acc (Seq.init blk (const i)))
+      (mapi (fun i blk -> (i, blk)) file_blocks)
+      Seq.empty
   in
 
   let blocks =
     Seq.unfold
       (fun (i, id) ->
         if i < len then
+          let file = nth disk i in
           if i mod 2 = 0 then
-            Some (Seq.init (nth disk i) (fun _ -> Some id), (i + 1, id + 1))
-          else Some (Seq.init (nth disk i) (fun _ -> None), (i + 1, id))
+            Some (Seq.init file (fun _ -> Some id), (i + 1, id + 1))
+          else Some (Seq.init file (const None), (i + 1, id))
         else None)
       (0, 0)
     |> Seq.concat
