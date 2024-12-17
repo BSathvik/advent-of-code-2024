@@ -5,6 +5,11 @@ open List
 let part1 disk =
   let len = length disk in
 
+  let file_blocks_len =
+    disk |> filteri (fun i _ -> i mod 2 = 0) |> fold_left ( + ) 0
+  in
+  print_int file_blocks_len;
+
   let rev_files =
     Seq.unfold
       (fun (i, id) ->
@@ -27,22 +32,29 @@ let part1 disk =
     |> Seq.concat
   in
 
-  let rec checksum blocks rev_files i =
-    match (Seq.uncons blocks, Seq.uncons rev_files) with
-    | None, _ -> 0
-    | Some (None, _), None -> 0
-    | Some (Some blk, tblk), _ -> (
-        match Seq.uncons tblk with
-        | None ->
-            print_int blk;
-            (i * blk) + checksum tblk rev_files (i + 1)
-        | Some (_, _) -> (i * blk) + checksum tblk rev_files (i + 1))
-    | Some (None, tblk), Some (f, tf) ->
-        print_int f;
-        (i * f) + checksum tblk tf (i + 1)
+  let rec checksum blocks rev_files i emtpy_n files_n =
+    if emtpy_n + files_n >= file_blocks_len then 0
+    else
+      match (Seq.uncons blocks, Seq.uncons rev_files) with
+      | None, _ -> 0
+      | Some (None, _), None -> 0
+      | Some (Some blk, tblk), _ -> (
+          match Seq.uncons tblk with
+          | None ->
+              print_int blk;
+              (i * blk)
+              + (tblk
+                |> Seq.take_while Option.is_some
+                |> Seq.take (files_n - emtpy_n)
+                |> Seq.map Option.get |> Seq.fold_left ( + ) 0)
+          | Some (_, _) ->
+              (i * blk) + checksum tblk rev_files (i + 1) emtpy_n (files_n + 1))
+      | Some (None, tblk), Some (f, tf) ->
+          (* print_int f; *)
+          (i * f) + checksum tblk tf (i + 1) (emtpy_n + 1) files_n
   in
 
-  checksum blocks rev_files 0
+  checksum blocks rev_files 0 0 0
 
 let () =
   let disk =
