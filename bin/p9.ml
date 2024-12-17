@@ -8,7 +8,6 @@ let part1 disk =
   let file_blocks_len =
     disk |> filteri (fun i _ -> i mod 2 = 0) |> fold_left ( + ) 0
   in
-  print_int file_blocks_len;
 
   let rev_files =
     Seq.unfold
@@ -40,17 +39,10 @@ let part1 disk =
       | Some (None, _), None -> 0
       | Some (Some blk, tblk), _ -> (
           match Seq.uncons tblk with
-          | None ->
-              print_int blk;
-              (i * blk)
-              + (tblk
-                |> Seq.take_while Option.is_some
-                |> Seq.take (files_n - emtpy_n)
-                |> Seq.map Option.get |> Seq.fold_left ( + ) 0)
+          | None -> i * blk
           | Some (_, _) ->
               (i * blk) + checksum tblk rev_files (i + 1) emtpy_n (files_n + 1))
       | Some (None, tblk), Some (f, tf) ->
-          (* print_int f; *)
           (i * f) + checksum tblk tf (i + 1) (emtpy_n + 1) files_n
   in
 
@@ -63,4 +55,4 @@ let () =
     |> List.of_seq
   in
 
-  Format.printf "\nPart 1: %d\n" (part1 disk)
+  Format.printf "Part 1: %d\n" (part1 disk)
